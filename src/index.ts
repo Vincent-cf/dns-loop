@@ -1,33 +1,47 @@
-/**
- * Welcome to Cloudflare Workers!
- *
- * This is a template for a Scheduled Worker: a Worker that can run on a
- * configurable interval:
- * https://developers.cloudflare.com/workers/platform/triggers/cron-triggers/
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Run `curl "http://localhost:8787/__scheduled?cron=*+*+*+*+*"` to see your worker in action
- * - Run `npm run deploy` to publish your worker
- *
- * Bind resources to your worker in `wrangler.toml`. After adding bindings, a type definition for the
- * `Env` object can be regenerated with `npm run cf-typegen`.
- *
- * Learn more at https://developers.cloudflare.com/workers/
- */
-
 export default {
-	// The scheduled handler is invoked at the interval set in our wrangler.toml's
-	// [[triggers]] configuration.
-	async scheduled(event, env, ctx): Promise<void> {
-		// A Cron Trigger can make requests to other endpoints on the Internet,
-		// publish to a Queue, query a D1 Database, and much more.
-		//
-		// We'll keep it simple and make an API call to a Cloudflare API:
-		let resp = await fetch('https://api.cloudflare.com/client/v4/ips');
-		let wasSuccessful = resp.ok ? 'success' : 'fail';
-
-		// You could store this result in KV, write to a D1 Database, or publish to a Queue.
-		// In this template, we'll just log the result:
-		console.log(`trigger fired at ${event.cron}: ${wasSuccessful}`);
+	async scheduled(event: ScheduledEvent, env: any, ctx: ExecutionContext): Promise<void> {
+	  // Define the list of server names
+	  const servers = Array.from({ length: 10 }, (_, i) => `server${i + 1}.ddos-dns.online`);
+  
+	  // Define the resolvers with their URLs
+	  const resolvers = [
+		{ name: "Cloudflare", url: "https://1.1.1.1/dns-query" },
+		{ name: "Google", url: "https://dns.google/resolve" },
+		{ name: "Quad9", url: "https://dns.quad9.net:5053/dns-query" },
+		{ name: "AdGuard", url: "https://dns.adguard.com/resolve" },  // Added AdGuard resolver
+	  ];
+  
+	  // Iterate over each server
+	  for (const server of servers) {
+		// Iterate over each resolver
+		for (const resolver of resolvers) {
+		  // Adjust the URL based on the resolver type (no additional modifications needed for AdGuard here)
+		  const url = `${resolver.url}?name=${server}`;
+  
+		  try {
+			// Make the fetch request to the resolver
+			const response = await fetch(url, {
+			  headers: { accept: "application/dns-json" },
+			  method: "GET",
+			});
+  
+			// Check if the response was successful
+			if (response.ok) {
+			  const data = await response.json();
+			  console.log(`DNS response from ${resolver.name} for ${server}:`, data);
+			} else {
+			  console.error(
+				`Error querying ${server} on ${resolver.name}:`,
+				response.status,
+				response.statusText
+			  );
+			}
+		  } catch (err) {
+			// Handle errors gracefully
+			console.error(`Failed to query ${server} on ${resolver.name}:`, err);
+		  }
+		}
+	  }
 	},
-} satisfies ExportedHandler<Env>;
+  };
+  

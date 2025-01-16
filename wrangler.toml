@@ -2,6 +2,7 @@
 name = "dns-loop"
 main = "src/index.ts"
 compatibility_date = "2025-01-09"
+account_id = "b66603270ac98750f6598cba38ec720b"
 
 # Cron Triggers
 # Docs: https://developers.cloudflare.com/workers/platform/triggers/cron-triggers/
@@ -20,7 +21,7 @@ enabled = true
 # rather than the end user may result in better performance.
 # Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
 # [placement]
-# mode = "smart"
+mode = "smart"
 
 # Variable bindings. These are arbitrary, plaintext strings (similar to environment variables)
 # Docs:
